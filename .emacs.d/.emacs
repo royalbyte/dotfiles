@@ -57,6 +57,13 @@
   (load-file user-init-file)
   (message "Reloaded main config! All systems online"))
 
+;; tries to load the best font in the world, oh glorious iosevka
+(defun ci/define-font ()
+  "Applies default font."
+  (when (and (display-graphic-p)
+             (find-font (font-spec :name "Iosevka Slab")))
+    (set-face-attribute 'default nil :font "Iosevka Slab-13")))
+
 ;; ----------------
 ;; package system
 ;; ----------------
@@ -91,6 +98,11 @@
 ;; ----------------
 ;; initialization
 ;; ----------------
+(ci/define-font)
+(add-hook 'after-make-frame-functions
+          (lambda (frame)
+            (with-selected-frame frame
+              (ci/define-font))))
 (global-set-key (kbd "C-c e") '.dat)
 (global-set-key (kbd "C-c r") '.datl)
 (add-hook 'emacs-startup-hook 'greetings)
