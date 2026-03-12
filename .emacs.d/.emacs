@@ -35,6 +35,8 @@
 ;; function to ensure packages that are on list-packages
 (defun ensure-package (pkg)
   (unless (package-installed-p pkg)
+    (unless package-archive-contents
+      (package-refresh-contents))
     (package-install pkg)))
 
 ;; funny greeting
