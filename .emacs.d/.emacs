@@ -70,8 +70,7 @@
 ;; -------
 (global-set-key (kbd "C-c e") '.dat)
 (global-set-key (kbd "C-c r") '.datl)
-(global-set-key (kbd "C-c c")
-                (lambda () (interactive) (call-interactively 'shell-command)))
+(global-set-key (kbd "C-c c") 'shell-command)
 
 ;; ----------------
 ;; package system
