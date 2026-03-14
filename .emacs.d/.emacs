@@ -16,7 +16,6 @@
 ;; ----------------
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 8)
-(setq-default standard-ident 8)
 (setq-default c-basic-offset 8)
 (setq scroll-conservatively 1337)
 (setq scroll-margin 6)
@@ -66,6 +65,14 @@
              (find-font (font-spec :name "Iosevka Slab")))
     (set-face-attribute 'default nil :font "Iosevka Slab-13")))
 
+;; -------
+;; binds
+;; -------
+(global-set-key (kbd "C-c e") '.dat)
+(global-set-key (kbd "C-c r") '.datl)
+(global-set-key (kbd "C-c c")
+                (lambda () (interactive) (call-interactively 'shell-command)))
+
 ;; ----------------
 ;; package system
 ;; ----------------
@@ -105,6 +112,4 @@
           (lambda (frame)
             (with-selected-frame frame
               (ci/define-font))))
-(global-set-key (kbd "C-c e") '.dat)
-(global-set-key (kbd "C-c r") '.datl)
 (add-hook 'emacs-startup-hook 'greetings)
