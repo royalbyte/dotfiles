@@ -14,9 +14,6 @@
 ;; ----------------
 ;; visual and QoL
 ;; ----------------
-(setq-default indent-tabs-mode nil)
-(setq-default tab-width 8)
-(setq-default c-basic-offset 8)
 (setq scroll-conservatively 1337)
 (setq scroll-margin 6)
 (setq isearch-lazy-count t)
@@ -65,20 +62,70 @@
              (find-font (font-spec :name "Iosevka Slab")))
     (set-face-attribute 'default nil :font "Iosevka Slab-13")))
 
-(defun dir ()
+;; create directoy
+(defun ci/dir ()
   (interactive)
   (if (derived-mode-p 'dired-mode)
       (call-interactively 'dired-create-directory)
     (call-interactively 'make-directory)))
 
+;; changes coding style, as of right now only between Linux and Xorg
+(defun ci/cstyle-menu ()
+  (interactive)
+  (let ((option (completing-read "Choose a coding style:"
+                                '("Kernel.org" "X.org"))))
+    (ci/cstyle-fmt option)
+    (message "Applied style: %s" option)))
+
+(defun ci/cstyle-fmt (style)
+  (if (string= style "Kernel.org")
+      (progn
+        (setq-local indent-tabs-mode t)
+        (setq-local tab-width 8)
+        (setq-local c-basic-offset 8)
+        (setq-local fill-column 80))
+    (progn
+      (setq-local indent-tabs-mode nil)
+      (setq-local tab-width 4)
+      (setq-local c-basic-offset 4)
+      (setq-local fill-column 78))))
+
+;; sets a waypoint
+(defun ci/waypoint (nametag)
+  (interactive "sNAMETAG: ")
+  (setq-local current-buffer (buffer-file-name))
+  (setq-local waypoints-path (expand-file-name "waypoints.txt" user-emacs-directory))
+  (unless (file-exists-p waypoints-path)
+    (write-region "" nil waypoints-path))
+  (append-to-file (format "{%s} %s\n" nametag current-buffer) nil waypoints-path)
+  (message "File successfully added to waypoints list"))
+
+;; jumps to waypoint
+(defun ci/pointdevice ()
+  (interactive)
+  (let (choices)
+    (with-temp-buffer
+      (insert-file-contents
+       (expand-file-name "waypoints.txt" user-emacs-directory))
+      (dolist (line (split-string (buffer-string) "\n" t))
+        (when (string-match "{\\([^}]+\\)} \\(.+\\)" line)
+          (push (cons (match-string 1 line)
+                      (match-string 2 line))
+                choices))))
+    (find-file
+     (cdr (assoc (completing-read "Waypoint: " choices nil t)
+                 choices)))))
 
 ;; -------
 ;; binds
 ;; -------
 (global-set-key (kbd "C-c e") '.dat)
 (global-set-key (kbd "C-c r") '.datl)
-(global-set-key (kbd "C-c c") 'compile)
-(global-set-key (kbd "C-c s") 'shell-command)
+(global-set-key (kbd "C-c v") 'compile)
+(global-set-key (kbd "C-c c") 'shell-command)
+(global-set-key (kbd "C-c s") 'ci/cstyle-menu)
+(global-set-key (kbd "C-c w") 'ci/waypoint)
+(global-set-key (kbd "C-c p") 'ci/pointdevice)
 
 ;; ----------------
 ;; package system
@@ -115,6 +162,7 @@
 ;; initialization
 ;; ----------------
 (ci/define-font)
+(ci/cstyle-fmt "Kernel.org") ;; global/default style to linux
 (add-hook 'after-make-frame-functions
           (lambda (frame)
             (with-selected-frame frame
