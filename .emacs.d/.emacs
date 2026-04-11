@@ -65,6 +65,13 @@
              (find-font (font-spec :name "Iosevka Slab")))
     (set-face-attribute 'default nil :font "Iosevka Slab-13")))
 
+(defun dir ()
+  (interactive)
+  (if (derived-mode-p 'dired-mode)
+      (call-interactively 'dired-create-directory)
+    (call-interactively 'make-directory)))
+
+
 ;; -------
 ;; binds
 ;; -------
