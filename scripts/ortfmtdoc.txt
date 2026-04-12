@@ -1,0 +1,14 @@
+-------------------------------------------------------------------
+○ ortfmt ~ the ocaml raw text formatter
+
+README
+
+                                                   Rafaes (doraibu)
+                                                         2026/04/12
+-------------------------------------------------------------------
+
+■ 1. What it is?
+       ortfmt is a formatter tool to document things in raw text (.txt) with a simple syntax
+       
+       it is focused on automating the identation and formatting, where you only provide the information and it works with it.
+       

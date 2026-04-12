@@ -1,3 +1,0 @@
-TITLE: O Guia de OCaml
-AUTHOR: Rafaes
-Text
