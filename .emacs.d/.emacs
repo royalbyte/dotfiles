@@ -1,4 +1,4 @@
-;; configurations for terminal Emacs
+;; Rafaes's personal configurations for terminal Emacs, because the GUI is slow
 
 ;; -------
 ;; basic
@@ -24,28 +24,73 @@
 (show-paren-mode 1)
 (fset 'yes-or-no-p 'y-or-n-p)
 
-;; ------------------
-;; custom functions
-;; ------------------
-;; function to ensure packages, because the emacs version is too bad
+;; ----------------
+;; package system
+;; ----------------
+;; oh boy, complex custom package system here we go...
+
+(require 'package)
+(setq package-archives
+      '(("gnu"   . "https://elpa.gnu.org/packages/")
+        ("melpa" . "https://melpa.org/packages/")))
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+(defvar ci/pkg-dir (expand-file-name "pkgs/" user-emacs-directory))
+(unless (file-directory-p ci/pkg-dir)
+  (make-directory ci/pkg-dir t))
+(add-to-list 'load-path ci/pkg-dir)
+
+(defvar packages-registry
+  '(("simpc-mode" . "https://raw.githubusercontent.com/rexim/simpc-mode/master/simpc-mode.el")))
+
+(defun ci/pkg-download (url dest)
+  (message "Downloading %s..." url)
+  (with-current-buffer (url-retrieve-synchronously url t t)
+    (goto-char (point-min))
+    (re-search-forward "\n\n" nil 'move)
+    (write-region (point) (point-max) dest nil 'silent)
+    (kill-buffer))
+  (message "Downloaded at %s" dest))
+
+(defun ci/pkg-install (pkg url)
+  (let* ((name (symbol-name pkg))
+         (dest (expand-file-name (concat name ".el") ci/pkg-dir)))
+    (unless (file-exists-p dest)
+      (ci/pkg-download url dest))
+    (ignore-errors
+      (byte-compile-file dest))
+    (add-to-list 'load-path ci/pkg-dir)
+    (require pkg nil t)))
+
+(defun ci/pkg-dns-resolver (pkg)
+  (let* ((name (symbol-name pkg))
+         (entry (assoc name packages-registry)))
+    (when entry
+      (let ((url (cdr entry)))
+        (message "Using fallback to %s" name)
+        (ci/pkg-install pkg url)
+        t))))
+
 (defun ensure-package (pkg)
   (if (package-installed-p pkg)
       (require pkg)
-    
     (condition-case err
         (progn
           (unless package-archive-contents
             (package-refresh-contents))
-          
           (package-install pkg)
           (require pkg)
           (message "Installing %s using package.el" pkg))
-      
       (error
-       (if (pkg-dns-resolver pkg)
+       (if (ci/pkg-dns-resolver pkg)
            (message "Installing %s after fallback (GitHub)" pkg)
          (error "Error while trying to install %s: %s" pkg err))))))
 
+;; ------------------
+;; custom functions
+;; ------------------
 ;; funny greeting
 (defun greetings ()
   (message "Welcome Aboard Captain, all systems online! System boot time: %.2fs"
@@ -76,7 +121,7 @@
     (set-face-attribute 'default nil :font "Frutiger-13")
     (message "Something went wrong while loading the default font, loading Frutiger"))))
 
-;; create directoy
+;; create directory
 (defun ci/dir ()
   (interactive)
   (if (derived-mode-p 'dired-mode)
@@ -130,35 +175,6 @@
      (cdr (assoc (completing-read "Waypoint: " choices nil t)
                  choices)))))
 
-(defun ci/pkg-download (url dest)
-  (message "Downloading %s..." url)
-  (with-current-buffer (url-retrieve-synchronously url t t)
-    (goto-char (point-min))
-    (re-search-forward "\n\n" nil 'move)
-    (write-region (point) (point-max) dest nil 'silent)
-    (kill-buffer))
-  (message "Downloaded at %s" dest))
-
-(defun ci/pkg-install (pkg url)
-  (let* ((name (symbol-name pkg))
-         (dest (expand-file-name (concat name ".el") ci/pkg-dir)))
-    (unless (file-exists-p dest)
-      (pkg-download url dest))
-    (ignore-errors
-      (byte-compile-file dest))
-    (add-to-list 'load-path ci/pkg-dir)
-    (require pkg nil t)))
-
-(defun ci/pkg-dns-resolver (pkg)
-  (let* ((name (symbol-name pkg))
-         (entry (assoc name packages-registry)))
-    
-    (when entry
-      (let ((url (cdr entry)))
-        (message "Using fallback to %s" name)
-        (pkg-install pkg url)
-        t))))
-
 ;; -------
 ;; binds
 ;; -------
@@ -172,26 +188,6 @@
 (global-set-key (kbd "C-c d") 'ci/dir)
 (global-set-key (kbd "C-c q") 'query-replace)
 
-;; ----------------
-;; package system
-;; ----------------
-;; oh boy, complex custom package system here we go...
-
-(require 'package)
-(setq package-archives
-      '(("gnu"   . "https://elpa.gnu.org/packages/")
-        ("melpa" . "https://melpa.org/packages/")))
-(package-initialize)
-(unless package-archive-contents
-  (package-refresh-contents))
-
-(defvar ci/pkg-dir (expand-file-name "pkgs/" user-emacs-directory))
-(unless (file-directory-p pkg-dir)
-  (make-directory pkg-dir t))
-(add-to-list 'load-path pkg-dir)
-
-(defvar packages-registry
-  '(("simpc-mode" . "https://raw.githubusercontent.com/rexim/simpc-mode/master/simpc-mode.el")))
 ;; ----------
 ;; packages
 ;; ----------
@@ -209,6 +205,7 @@
 (setq completion-category-defaults nil)
 (marginalia-mode 1)
 (load-theme 'gruber-darker t)
+(add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
 
 ;; --------------
 ;; organization
@@ -221,7 +218,7 @@
 ;; initialization
 ;; ----------------
 (ci/define-font)
-(ci/cstyle-fmt "Kernel.org") ;; global/default style to linux
+(ci/cstyle-fmt "Kernel.org")
 (add-hook 'after-make-frame-functions
           (lambda (frame)
             (with-selected-frame frame
