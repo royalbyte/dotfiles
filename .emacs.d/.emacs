@@ -27,13 +27,24 @@
 ;; ------------------
 ;; custom functions
 ;; ------------------
-
-;; function to ensure packages that are on list-packages
+;; function to ensure packages, because the emacs version is too bad
 (defun ensure-package (pkg)
-  (unless (package-installed-p pkg)
-    (unless package-archive-contents
-      (package-refresh-contents))
-    (package-install pkg)))
+  (if (package-installed-p pkg)
+      (require pkg)
+    
+    (condition-case err
+        (progn
+          (unless package-archive-contents
+            (package-refresh-contents))
+          
+          (package-install pkg)
+          (require pkg)
+          (message "Installing %s using package.el" pkg))
+      
+      (error
+       (if (pkg-dns-resolver pkg)
+           (message "Installing %s after fallback (GitHub)" pkg)
+         (error "Error while trying to install %s: %s" pkg err))))))
 
 ;; funny greeting
 (defun greetings ()
@@ -55,12 +66,15 @@
   (load-file user-init-file)
   (message "Reloaded main config! All systems online"))
 
-;; tries to load the best font in the world, oh glorious iosevka
+;; tries to load the only two acceptable fonts on the planet
 (defun ci/define-font ()
   "Applies default font."
-  (when (and (display-graphic-p)
-             (find-font (font-spec :name "Iosevka Slab")))
-    (set-face-attribute 'default nil :font "Iosevka Slab-13")))
+  (cond
+   ((find-font (font-spec :name "Iosevka Slab"))
+    (set-face-attribute 'default nil :font "Iosevka Slab-13"))
+   ((find-font (font-spec :name "Frutiger"))
+    (set-face-attribute 'default nil :font "Frutiger-13")
+    (message "Something went wrong while loading the default font, loading Frutiger"))))
 
 ;; create directoy
 (defun ci/dir ()
@@ -116,6 +130,35 @@
      (cdr (assoc (completing-read "Waypoint: " choices nil t)
                  choices)))))
 
+(defun ci/pkg-download (url dest)
+  (message "Downloading %s..." url)
+  (with-current-buffer (url-retrieve-synchronously url t t)
+    (goto-char (point-min))
+    (re-search-forward "\n\n" nil 'move)
+    (write-region (point) (point-max) dest nil 'silent)
+    (kill-buffer))
+  (message "Downloaded at %s" dest))
+
+(defun ci/pkg-install (pkg url)
+  (let* ((name (symbol-name pkg))
+         (dest (expand-file-name (concat name ".el") ci/pkg-dir)))
+    (unless (file-exists-p dest)
+      (pkg-download url dest))
+    (ignore-errors
+      (byte-compile-file dest))
+    (add-to-list 'load-path ci/pkg-dir)
+    (require pkg nil t)))
+
+(defun ci/pkg-dns-resolver (pkg)
+  (let* ((name (symbol-name pkg))
+         (entry (assoc name packages-registry)))
+    
+    (when entry
+      (let ((url (cdr entry)))
+        (message "Using fallback to %s" name)
+        (pkg-install pkg url)
+        t))))
+
 ;; -------
 ;; binds
 ;; -------
@@ -126,10 +169,14 @@
 (global-set-key (kbd "C-c s") 'ci/cstyle-menu)
 (global-set-key (kbd "C-c w") 'ci/waypoint)
 (global-set-key (kbd "C-c p") 'ci/pointdevice)
+(global-set-key (kbd "C-c d") 'ci/dir)
+(global-set-key (kbd "C-c q") 'query-replace)
 
 ;; ----------------
 ;; package system
 ;; ----------------
+;; oh boy, complex custom package system here we go...
+
 (require 'package)
 (setq package-archives
       '(("gnu"   . "https://elpa.gnu.org/packages/")
@@ -138,17 +185,29 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
+(defvar ci/pkg-dir (expand-file-name "pkgs/" user-emacs-directory))
+(unless (file-directory-p pkg-dir)
+  (make-directory pkg-dir t))
+(add-to-list 'load-path pkg-dir)
+
+(defvar packages-registry
+  '(("simpc-mode" . "https://raw.githubusercontent.com/rexim/simpc-mode/master/simpc-mode.el")))
 ;; ----------
 ;; packages
 ;; ----------
 (ensure-package 'vertico)
-(vertico-mode 1)
 (ensure-package 'orderless)
+(ensure-package 'marginalia)
+(ensure-package 'gruber-darker-theme)
+(ensure-package 'simpc-mode)
+
+;; ----------
+;; configs
+;; ----------
+(vertico-mode 1)
 (setq completion-styles '(orderless basic))
 (setq completion-category-defaults nil)
-(ensure-package 'marginalia)
 (marginalia-mode 1)
-(ensure-package 'gruber-darker-theme)
 (load-theme 'gruber-darker t)
 
 ;; --------------
