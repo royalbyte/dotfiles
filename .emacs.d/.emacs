@@ -1,4 +1,4 @@
-;; Rafaes's personal configurations for terminal Emacs, because the GUI is slow
+;; Rafaes's personal configurations for terminal Emacs, because the GUI is too slow
 
 ;; -------
 ;; basic
