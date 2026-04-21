@@ -191,11 +191,11 @@
 ;; ----------
 ;; packages
 ;; ----------
-(ensure-package 'vertico)
-(ensure-package 'orderless)
-(ensure-package 'marginalia)
+(ensure-package 'vertico) ;; I have a feeling that I could implement this manually and it would be very lightweight, but I'm too lazy frfr
+(ensure-package 'orderless) ;; useful bloat
+(ensure-package 'marginalia) ;; I don't use this very often, but yk sometimes it is useful
 (ensure-package 'gruber-darker-theme)
-(ensure-package 'simpc-mode)
+(ensure-package 'simpc-mode) ;; Emacs built-in C mode is horrible
 
 ;; ----------
 ;; configs
@@ -205,7 +205,7 @@
 (setq completion-category-defaults nil)
 (marginalia-mode 1)
 (load-theme 'gruber-darker t)
-(add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
+(add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode)) ;; black magic
 
 ;; --------------
 ;; organization
